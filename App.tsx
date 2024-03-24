@@ -1,65 +1,80 @@
-import { useCallback, useEffect, useState } from 'react';
-import ReactFlow, { addEdge, applyEdgeChanges, applyNodeChanges } from 'reactflow';
-import ELK from 'elkjs/lib/elk.bundled.js';
-import 'reactflow/dist/style.css';
-import './components/Node/text-updater-node.css';
-import sampleJson from './assets/sample.json'
-import sampleJson2 from './assets/sample2.json'
-import { Handle, Position } from 'reactflow';
+import { useCallback, useEffect, useState, useRef } from "react";
+import ReactFlow, {
+  addEdge,
+  applyEdgeChanges,
+  applyNodeChanges,
+} from "reactflow";
+import ELK from "elkjs/lib/elk.bundled.js";
+import "reactflow/dist/style.css";
+import "./components/Node/text-updater-node.css";
+
+import "./components/Node/knowledge-node.css";
+
+import sampleJson from "./assets/sample.json";
+import sampleJson2 from "./assets/sample2.json";
+import { Handle, Position } from "reactflow";
 
 const handleStyle = { left: 10 };
 
-function generateNodesAndEdgesFromJSON(jsonData) {
-  let nodes = [...initialNodes];
-  let edges = [...initialEdges];
-  let nodeId = 1;
+function KnowledgeNode({ data, isConnectable }) {
+  function handleSubmit(e) {
+    e.preventDefault();
+    //generateNodesAndEdgesFromJSON(sampleJson);
 
-  jsonData.forEach((item, index) => {
-    let lastNodeId = nodeId;
-    nodeId++;
+    // set state
 
-    // Adding nodes and edges for each response
-    item.responses.forEach((response) => {
-      const responseNode = {
-        id: String(nodeId),
-        type: 'default', // change this to the appropriate type for responses
-        position: { x: index * 100 + 100 + nodeId * 10, y: index * 100 + 100 }, // Adjust position calculation as needed
-        data: { label: response.prompt }
-      };
-      nodes.push(responseNode);
+    console.log(isConnectable);
 
-      const edge = {
-        id: `edge-${lastNodeId}-${nodeId}`,
-        source: String(lastNodeId),
-        target: String(nodeId),
-      };
-      edges.push(edge);
-      nodeId++;
-    });
-  });
-  return { nodes, edges }
+    data.onChange(e, data.prompt, data.id);
+  }
+
+  return (
+    <div className="knowledge-node">
+      <Handle
+        type="target"
+        position={Position.Top}
+        isConnectable={isConnectable}
+      />
+      <div>
+        <label htmlFor="text" onClick={handleSubmit}>
+          {" "}
+          {data.label}{" "}
+        </label>
+      </div>
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        id="a"
+        isConnectable={isConnectable}
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        id="b"
+        isConnectable={isConnectable}
+      />
+    </div>
+  );
 }
 
 function TextUpdaterNode({ data, isConnectable }) {
-  const [prompt, setPrompt] = useState('')
+  const [prompt, setPrompt] = useState("");
 
   const onChange = useCallback((evt) => {
-    setPrompt(evt.target.value)
+    setPrompt(evt.target.value);
   }, []);
 
   function handleSubmit(e) {
     e.preventDefault();
-    console.log(prompt);
-    generateNodesAndEdgesFromJSON(sampleJson)
+    //generateNodesAndEdgesFromJSON(sampleJson);
 
     // set state
 
-
+    data.onChange(e, prompt, data.id);
   }
 
   return (
     <div className="text-updater-node">
-      <Handle type="target" position={Position.Top} isConnectable={isConnectable} />
       <div>
         <label htmlFor="text">Text:</label>
         <input id="text" name="text" onChange={onChange} className="nodrag" />
@@ -72,73 +87,160 @@ function TextUpdaterNode({ data, isConnectable }) {
         style={handleStyle}
         isConnectable={isConnectable}
       />
-      <Handle type="source" position={Position.Bottom} id="b" isConnectable={isConnectable} />
     </div>
   );
-};
+}
 
 const rfStyle = {
-  backgroundColor: '#B8CEFF',
+  backgroundColor: "#B8CEFF",
 };
 
-const initialNodes = [
-  { id: '1', type: 'textUpdater', position: { x: 0, y: 0 }, data: { label: 123 } },
-  // {
-  //   id: '2',
-  //   type: 'output',
-  //   targetPosition: 'top',
-  //   position: { x: 0, y: 200 },
-  //   data: { label:  },
-  // },
-  // {
-  //   id: '3',
-  //   type: 'output',
-  //   targetPosition: 'top',
-  //   position: { x: 200, y: 200 },
-  //   data: { label: 'node 3' },
-  // },
-];
+// const currentNodes = [];
 
-const initialEdges = [
-  // { id: 'edge-1', source: '1', target: '2', sourceHandle: 'a' },
-  // { id: 'edge-2', source: '1', target: '3', sourceHandle: 'b' },
-];
+// const currentEdges = [];
 
 // we define the nodeTypes outside of the component to prevent re-renderings
 // you could also use useMemo inside the component
-const nodeTypes = { textUpdater: TextUpdaterNode };
+const nodeTypes = {
+  textUpdater: TextUpdaterNode,
+  knowledgeNode: KnowledgeNode,
+};
+
+var json = {};
 
 function Flow() {
-  const [nodes, setNodes] = useState(initialNodes);
-  const [edges, setEdges] = useState(initialEdges);
-  const [prompts, setPrompts] = useState('')
+  const [nodes, setNodes] = useState([]);
+  const [edges, setEdges] = useState([]);
+  const [prompts, setPrompts] = useState("");
+
+  const nodesStateRef = useRef();
+
+  nodesStateRef.current = nodes;
+
+  const edgesStateRef = useRef();
+
+  edgesStateRef.current = edges;
 
   useEffect(() => {
-    const { nodes: newNodes, edges: newEdges } = generateNodesAndEdgesFromJSON(sampleJson);
-    setNodes(newNodes);
-    setEdges(newEdges);
+    function generateNodesAndEdgesFromJSON(
+      jsonData,
+      parentId,
+      currentPrompt,
+      level
+    ) {
+      let nodeId = 1;
+
+      // console.log(nodesStateRef.current);
+
+      let nodes = [...nodesStateRef.current];
+      let edges = [...edgesStateRef.current];
+
+      jsonData.responses.forEach((response, index) => {
+        const responseNode = {
+          id: `${parentId}+${nodeId}`,
+          type: "knowledgeNode", // change this to the appropriate type for responses
+          position: {
+            x: index * 100 + 100 + nodeId * 10,
+            y: index * 100 + 100,
+          }, // Adjust position calculation as needed
+          data: {
+            label: response.prompt,
+            prompt: currentPrompt + " " + response.prompt,
+            id: `${parentId}+${nodeId}`,
+            level: level + 1,
+            onChange: onChange,
+          },
+        };
+        nodes.push(responseNode);
+
+        // currentNodes.push(responseNode);
+
+        const edge = {
+          id: `edge-${parentId}*${parentId}+${nodeId}`,
+          source: parentId,
+          target: `${parentId}+${nodeId}`,
+        };
+
+        edges.push(edge);
+
+        // currentEdges.push(edge);
+
+        nodeId++;
+      });
+
+      return { nodes, edges };
+    }
+
+    const onChange = (event, prompt, id) => {
+      getChildrenForPrompt(prompt, id);
+    };
+
+    const getChildrenForPrompt = (prompt, id) => {
+      var myHeaders = new Headers();
+      myHeaders.append("ngrok-skip-browser-warning", "true");
+
+      var requestOptions = {
+        method: "GET",
+        headers: myHeaders,
+        redirect: "follow",
+      };
+
+      fetch("http://127.0.0.1:8080/claude?query=" + prompt, requestOptions)
+        .then((response) => response.text())
+        .then((result) => {
+          const { nodes: newNodes, edges: newEdges } =
+            generateNodesAndEdgesFromJSON(JSON.parse(result), id, prompt, 1);
+
+          console.log(newNodes);
+          console.log(newEdges);
+
+          setNodes(newNodes);
+          setEdges(newEdges);
+        })
+        .catch((error) => console.log("error", error));
+    };
+
+    // currentNodes.push({
+    //   id: `1`,
+    //   type: "textUpdater",
+    //   position: { x: 0, y: 0 },
+    //   data: { onChange: onChange, id: `1`, level: 1 },
+    // });
+
+    setNodes([
+      {
+        id: `1`,
+        type: "textUpdater",
+        position: { x: 0, y: 0 },
+        data: { onChange: onChange, id: `1`, level: 1 },
+      },
+    ]);
+    setEdges([]);
   }, []);
+
+  // setNodes(initialNodes);
 
   const onNodesChange = useCallback(
     (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
     [setNodes]
   );
   const onEdgesChange = useCallback(
-    (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
+    (changes) =>
+      setEdges((eds) => {
+        console.log("on edges change");
+        applyEdgeChanges(changes, eds);
+      }),
     [setEdges]
   );
   const onConnect = useCallback(
-    (connection) => setEdges((eds) => addEdge(connection, eds)),
+    (connection) =>
+      setEdges((eds) => {
+        console.log("on connect");
+
+        addEdge(connection, eds);
+      }),
     [setEdges]
   );
-
-  // function onNodeClick(event: MouseEvent<Element, MouseEvent>, node: Node<any, string>): void {
-  //   generateNodesAndEdgesFromJSON(sampleJson)
-  // }
-
-  const { nodes: newNodes, edges: newEdges } = generateNodesAndEdgesFromJSON(sampleJson);
-  // setNodes(newNodes);
-  // setEdges(newEdges);
 
   return (
     <ReactFlow
@@ -147,7 +249,6 @@ function Flow() {
       onNodesChange={onNodesChange}
       onEdgesChange={onEdgesChange}
       onConnect={onConnect}
-      // onNodeClick={onNodeClick}
       nodeTypes={nodeTypes}
       fitView
       style={rfStyle}
