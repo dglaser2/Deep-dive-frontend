@@ -249,7 +249,7 @@ function Flow() {
       console.log(id);
 
       console.log(prompt);
-      fetch("http://127.0.0.1:8080/claude?query=" + prompt, requestOptions)
+      fetch("https://2fa5-148-170-224-174.ngrok-free.app/claude?query=" + prompt, requestOptions)
         .then((response) => response.text())
         .then((result) => {
           const { nodes: newNodes, edges: newEdges } =
