@@ -25,7 +25,9 @@ function KnowledgeNode({ data, isConnectable }) {
 
     console.log(isConnectable);
 
-    data.onChange(e, data.prompt, data.id);
+    if (data.level < 3) {
+      data.onChange(e, data.prompt, data.id, data.level);
+    }
   }
 
   return (
@@ -70,13 +72,20 @@ function TextUpdaterNode({ data, isConnectable }) {
 
     // set state
 
-    data.onChange(e, prompt, data.id);
+    if (data.level < 3) {
+      data.onChange(
+        e,
+        "Build a " + prompt.trim().toLowerCase() + " application ",
+        data.id,
+        data.level
+      );
+    }
   }
 
   return (
     <div className="text-updater-node">
       <div>
-        <label htmlFor="text">Text:</label>
+        <label htmlFor="text">Enter application name to get started:</label>
         <input id="text" name="text" onChange={onChange} className="nodrag" />
         <button onClick={handleSubmit}>Submit</button>
       </div>
@@ -121,7 +130,21 @@ function Flow() {
 
   edgesStateRef.current = edges;
 
+  var headObject = {};
+
   useEffect(() => {
+    function getNodeObjectByTarget(target) {
+      var returnNodeObject = null;
+
+      nodesStateRef.current.forEach((nodeObject, index) => {
+        if (nodeObject.id.trim().localeCompare(target.trim()) === 0) {
+          returnNodeObject = nodeObject;
+        }
+      });
+
+      return returnNodeObject;
+    }
+
     function generateNodesAndEdgesFromJSON(
       jsonData,
       parentId,
@@ -132,20 +155,59 @@ function Flow() {
 
       // console.log(nodesStateRef.current);
 
-      let nodes = [...nodesStateRef.current];
-      let edges = [...edgesStateRef.current];
+      // console.log(edgesStateRef.current);
+
+      // console.log(jsonData);
+
+      let nodes = [];
+
+      let edges = [];
+
+      edgesStateRef.current.forEach((edgeObject, index) => {
+        target = edgeObject.target;
+
+        nodeObject = getNodeObjectByTarget(target);
+
+        if (nodeObject.data.level < level + 1) {
+          nodes.push(nodeObject);
+
+          edges.push(edgeObject);
+        } else {
+          console.log("Removed node object " + nodeObject.id);
+        }
+      });
+
+      nodes.push(headObject);
+
+      let application = "";
+
+      if (
+        currentPrompt.includes("Build a") &&
+        currentPrompt.includes("application")
+      ) {
+        application = currentPrompt.split(" ")[2];
+
+        suffix = " of " + application + " application";
+      }
 
       jsonData.responses.forEach((response, index) => {
+        let promptString = "";
+
+        if (!response.prompt.includes(application)) {
+          promptString = response.prompt + suffix;
+        } else {
+          promptString = response.prompt;
+        }
         const responseNode = {
           id: `${parentId}+${nodeId}`,
           type: "knowledgeNode", // change this to the appropriate type for responses
           position: {
-            x: index * 100 + 100 + nodeId * 10,
-            y: index * 100 + 100,
+            x: index * 500 + nodeId * 10 - 500,
+            y: level * 200 + 100,
           }, // Adjust position calculation as needed
           data: {
-            label: response.prompt,
-            prompt: currentPrompt + " " + response.prompt,
+            label: promptString,
+            prompt: promptString,
             id: `${parentId}+${nodeId}`,
             level: level + 1,
             onChange: onChange,
@@ -171,11 +233,11 @@ function Flow() {
       return { nodes, edges };
     }
 
-    const onChange = (event, prompt, id) => {
-      getChildrenForPrompt(prompt, id);
+    const onChange = (event, prompt, id, level) => {
+      getChildrenForPrompt(prompt, id, level);
     };
 
-    const getChildrenForPrompt = (prompt, id) => {
+    const getChildrenForPrompt = (prompt, id, level) => {
       var myHeaders = new Headers();
       myHeaders.append("ngrok-skip-browser-warning", "true");
 
@@ -184,15 +246,19 @@ function Flow() {
         headers: myHeaders,
         redirect: "follow",
       };
+      console.log(id);
 
+      console.log(prompt);
       fetch("http://127.0.0.1:8080/claude?query=" + prompt, requestOptions)
         .then((response) => response.text())
         .then((result) => {
           const { nodes: newNodes, edges: newEdges } =
-            generateNodesAndEdgesFromJSON(JSON.parse(result), id, prompt, 1);
-
-          console.log(newNodes);
-          console.log(newEdges);
+            generateNodesAndEdgesFromJSON(
+              JSON.parse(result),
+              id,
+              prompt,
+              level
+            );
 
           setNodes(newNodes);
           setEdges(newEdges);
@@ -207,14 +273,14 @@ function Flow() {
     //   data: { onChange: onChange, id: `1`, level: 1 },
     // });
 
-    setNodes([
-      {
-        id: `1`,
-        type: "textUpdater",
-        position: { x: 0, y: 0 },
-        data: { onChange: onChange, id: `1`, level: 1 },
-      },
-    ]);
+    headObject = {
+      id: `1`,
+      type: "textUpdater",
+      position: { x: 0, y: 0 },
+      data: { onChange: onChange, id: `1`, level: 1 },
+    };
+
+    setNodes([headObject]);
     setEdges([]);
   }, []);
 
