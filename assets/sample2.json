@@ -1,0 +1,69 @@
+[
+    // {
+    //     "prompt": "Build cooking app",
+    //     "responses": [
+    //         {
+    //             "prompt": "frontend",
+    //             "meta": "frontend for app"
+    //         },
+    //         {
+    //             "prompt": "backend",
+    //             "meta": "backend for app"
+    //         },
+    //         {
+    //             "prompt": "fullstack",
+    //             "meta": "fullstack for app"
+    //         }
+    //     ]
+    // },
+    {
+        "prompt": "Build cooking app frontend",
+        "responses": [
+            {
+                "prompt": "frontend component 1",
+                "meta": "front page"
+            },
+            {
+                "prompt": "frontend component 2",
+                "meta": "detail page"
+            },
+            {
+                "prompt": "frontend component 3",
+                "meta": "end page"
+            }
+        ]
+    }
+]
+// [
+//     {
+//         "prompt": "Build cooking app",
+//         "responses": [
+//             {
+//                 "prompt": "frontend",
+//                 "meta": "frontend for app"
+//             },
+//             {
+//                 "prompt": "backend",
+//                 "meta": "backend for app"
+//             },
+//             {
+//                 "prompt": "fullstack",
+//                 "meta": "fullstack for app",
+//                 "responses": [
+//                     {
+//                         "prompt": "frontend component 1",
+//                         "meta": "front page"
+//                     },
+//                     {
+//                         "prompt": "frontend component 2",
+//                         "meta": "detail page"
+//                     },
+//                     {
+//                         "prompt": "frontend component 3",
+//                         "meta": "end page"
+//                     }
+//                 ]
+//             }
+//         ]
+//     }
+// ]
